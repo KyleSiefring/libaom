@@ -516,8 +516,9 @@ list(APPEND AOM_AV1_ENCODER_INTRIN_SSE4_2
 list(APPEND AOM_AV1_COMMON_INTRIN_VSX "${AOM_ROOT}/av1/common/ppc/cfl_ppc.c")
 
 if(CONFIG_ACCOUNTING)
-  list(APPEND AOM_AV1_DECODER_SOURCES "${AOM_ROOT}/av1/decoder/accounting.c"
-              "${AOM_ROOT}/av1/decoder/accounting.h")
+  list(APPEND AOM_AV1_COMMON_SOURCES "${AOM_ROOT}/av1/decoder/accounting.c"
+              "${AOM_ROOT}/av1/decoder/accounting.h"
+              "${AOM_ROOT}/av1/decoder/map/uthash.h")
 endif()
 
 if(CONFIG_INSPECTION)

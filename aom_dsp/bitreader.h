@@ -48,7 +48,7 @@
 #define aom_read_cdf(r, cdf, nsymbs, ACCT_STR_NAME) \
   aom_read_cdf_(r, cdf, nsymbs ACCT_STR_ARG(ACCT_STR_NAME))
 #define aom_read_symbol(r, cdf, nsymbs, ACCT_STR_NAME) \
-  aom_read_symbol_(r, cdf, nsymbs ACCT_STR_ARG(ACCT_STR_NAME))
+   aom_read_symbol_(r, cdf, nsymbs, __FILE__, __LINE__ ACCT_STR_ARG(ACCT_STR_NAME))
 
 #ifdef __cplusplus
 extern "C" {
@@ -218,10 +218,17 @@ static INLINE int aom_read_cdf_(aom_reader *r, const aom_cdf_prob *cdf,
 }
 
 static INLINE int aom_read_symbol_(aom_reader *r, aom_cdf_prob *cdf,
-                                   int nsymbs ACCT_STR_PARAM) {
+                                   int nsymbs, char* src_file, int line ACCT_STR_PARAM) {
   int ret;
+
   ret = aom_read_cdf(r, cdf, nsymbs, ACCT_STR_NAME);
-  if (r->allow_update_cdf) update_cdf(cdf, ret, nsymbs);
+
+  Accounting* accounting = r->accounting;
+  aom_accounting_log_symbol(accounting, ACCT_STR_NAME, src_file, line, cdf, nsymbs, ret, r->allow_update_cdf);
+
+  if (r->allow_update_cdf)
+    update_cdf(cdf, ret, nsymbs);
+
   return ret;
 }
 

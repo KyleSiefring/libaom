@@ -77,7 +77,7 @@ static AOM_INLINE int keep_one_comp_stat(MV_STATS *mv_stats, int comp_val,
   aom_cdf_prob *sign_cdf = cur_mvcomp_ctx->sign_cdf;
   aom_cdf_prob *class_cdf = cur_mvcomp_ctx->classes_cdf;
   aom_cdf_prob *class0_cdf = cur_mvcomp_ctx->class0_cdf;
-  aom_cdf_prob(*bits_cdf)[3] = cur_mvcomp_ctx->bits_cdf;
+  aom_cdf_prob(*bits_cdf)[CDF_SIZE(2)] = cur_mvcomp_ctx->bits_cdf;
   aom_cdf_prob *frac_part_cdf = mv_class
                                     ? (cur_mvcomp_ctx->fp_cdf)
                                     : (cur_mvcomp_ctx->class0_fp_cdf[int_part]);

@@ -74,6 +74,9 @@ struct frame_contexts;
 void av1_reset_cdf_symbol_counters(struct frame_contexts *fc);
 void av1_default_coef_probs(struct AV1Common *cm);
 void av1_init_mode_probs(struct frame_contexts *fc);
+void av1_reset_cdf_symbol_counters(struct frame_contexts *fc);
+
+void av1_move_to_new_contexts(struct frame_contexts *fc, const struct frame_contexts *src);
 
 struct frame_contexts;
 

@@ -2868,7 +2868,7 @@ static const uint8_t *decode_tiles(AV1Decoder *pbi, const uint8_t *data,
                              &td->dcb.xd);
 
       // Initialise the tile context from the frame context
-      tile_data->tctx = *cm->fc;
+      av1_move_to_new_contexts(&tile_data->tctx, cm->fc);
       td->dcb.xd.tile_ctx = &tile_data->tctx;
 
       // decode tile
@@ -2942,7 +2942,9 @@ static AOM_INLINE void tile_worker_hook_init(
   av1_init_above_context(&cm->above_contexts, av1_num_planes(cm), tile_row, xd);
 
   // Initialise the tile context from the frame context
-  tile_data->tctx = *cm->fc;
+  //fprintf(stderr, "%s:tile_data->ctxt = *cm->fc (maybe supported)\n", __func__);
+  av1_move_to_new_contexts(&tile_data->tctx, cm->fc);
+  //tile_data->tctx = *cm->fc;//
   xd->tile_ctx = &tile_data->tctx;
 #if CONFIG_ACCOUNTING
   if (pbi->acct_enabled) {
@@ -5200,7 +5202,10 @@ uint32_t av1_decode_frame_headers_and_setup(AV1Decoder *pbi,
   if (cm->show_existing_frame) {
     if (pbi->reset_decoder_state) {
       // Use the default frame context values.
-      *cm->fc = *cm->default_frame_context;
+      //fprintf(stderr, "%s:reset_decoder_state (maybe supported)\n", __func__);
+      //fprintf(GLOBAL_ACCOUNTING->event_file, "%s:reset_decoder_state (maybe supported)\n", __func__);
+      //av1_move_to_new_contexts(cm->fc, cm->default_frame_context);
+      *cm->fc = *cm->default_frame_context; //
       if (!cm->fc->initialized)
         aom_internal_error(&pbi->error, AOM_CODEC_CORRUPT_FRAME,
                            "Uninitialized entropy context.");
@@ -5214,11 +5219,15 @@ uint32_t av1_decode_frame_headers_and_setup(AV1Decoder *pbi,
 
   av1_setup_block_planes(xd, cm->seq_params->subsampling_x,
                          cm->seq_params->subsampling_y, num_planes);
+
+  //fprintf(stderr, "%s:primary_ref_frame (maybe supported)\n", __func__);
   if (cm->features.primary_ref_frame == PRIMARY_REF_NONE) {
     // use the default frame context values
-    *cm->fc = *cm->default_frame_context;
+    //av1_move_to_new_contexts(cm->fc, cm->default_frame_context);
+    *cm->fc = *cm->default_frame_context; //
   } else {
-    *cm->fc = get_primary_ref_frame_buf(cm)->frame_context;
+    //av1_move_to_new_contexts(cm->fc, &get_primary_ref_frame_buf(cm)->frame_context);
+    *cm->fc = get_primary_ref_frame_buf(cm)->frame_context; //
   }
   if (!cm->fc->initialized)
     aom_internal_error(&pbi->error, AOM_CODEC_CORRUPT_FRAME,
@@ -5385,8 +5394,11 @@ void av1_decode_tg_tiles_and_wrapup(AV1Decoder *pbi, const uint8_t *data,
   if (!pbi->dcb.corrupted) {
     if (cm->features.refresh_frame_context == REFRESH_FRAME_CONTEXT_BACKWARD) {
       assert(pbi->context_update_tile_id < pbi->allocated_tiles);
-      *cm->fc = pbi->tile_data[pbi->context_update_tile_id].tctx;
-      av1_reset_cdf_symbol_counters(cm->fc);
+      //fprintf(stderr, "%s:REFRESH_FRAME_CONTEXT_BACKWARDS (maybe supported)\n", __func__);
+      //fprintf(GLOBAL_ACCOUNTING->event_file, "%s:REFRESH_FRAME_CONTEXT_BACKWARDS (maybe supported)\n", __func__);
+      //av1_move_to_new_contexts(cm->fc, &pbi->tile_data[pbi->context_update_tile_id].tctx);
+      *cm->fc = pbi->tile_data[pbi->context_update_tile_id].tctx;//
+      av1_reset_cdf_symbol_counters(cm->fc);//
     }
   } else {
     aom_internal_error(&pbi->error, AOM_CODEC_CORRUPT_FRAME,
@@ -5401,6 +5413,10 @@ void av1_decode_tg_tiles_and_wrapup(AV1Decoder *pbi, const uint8_t *data,
 
   // Non frame parallel update frame context here.
   if (!tiles->large_scale) {
+    //fprintf(stderr, "%s:tiles_not_large_scale (maybe supported)\n", __func__);
+    // GLOBAL_ACCOUNTING->event_file
+    //fprintf(stderr, "%s:tiles_not_large_scale (maybe supported)\n", __func__);
+    //av1_move_to_new_contexts(&cm->cur_frame->frame_context, cm->fc);
     cm->cur_frame->frame_context = *cm->fc;
   }
 }

@@ -61,6 +61,15 @@ void aom_accounting_init(Accounting *accounting) {
   assert(AOM_ACCOUNTING_HASH_SIZE > 2 * MAX_SYMBOL_TYPES);
   for (i = 0; i < AOM_ACCOUNTING_HASH_SIZE; i++)
     accounting->hash_dictionary[i] = -1;
+
+
+  accounting->event_file = fopen("../events.bin", "w");
+  accounting->cdf_map = NULL;
+  accounting->current_frame_context = -1;
+  GLOBAL_ACCOUNTING = accounting;
+  FRAME_CONTEXT_TIME = 0;
+
+
   aom_accounting_reset(accounting);
 }
 
@@ -81,6 +90,8 @@ void aom_accounting_clear(Accounting *accounting) {
   for (i = 0; i < dictionary->num_strs; i++) {
     free(dictionary->strs[i]);
   }
+
+  fclose(accounting->event_file);
 }
 
 void aom_accounting_set_context(Accounting *accounting, int16_t x, int16_t y) {
@@ -135,4 +146,83 @@ void aom_accounting_dump(Accounting *accounting) {
            accounting->syms.dictionary.strs[sym->id], sym->context.x,
            sym->context.y, (float)sym->bits / 8.0, sym->samples);
   }
+}
+
+static void fput_u16(uint16_t x, FILE* file) {
+  // little endian
+  putc(x & 0xFF, file); // byte 0
+  putc(x >> 8, file); // byte 1
+}
+
+static void fput_str(const char *str, FILE* file) {
+  fputc(strlen(str), file);
+  fputs(str, file);
+}
+
+void aom_accounting_log_symbol(Accounting *accounting, const char *str,
+                               const char* src_name, int line,
+                               const aom_cdf_prob *cdf,
+                               int nsymbs, int symb, int update) {
+  CDF_Record* record = NULL;
+  int tmp = cdf[nsymbs + 1];
+  HASH_FIND_INT(accounting->cdf_map, &tmp, record);
+
+  int context_timestamp = cdf[nsymbs+2];
+  if (accounting->current_frame_context != context_timestamp) {
+    //fprintf(accounting->event_file, "%X%X\n", SET_CURRENT_CONTEXT, context_timestamp);
+    fputc(SET_CURRENT_CONTEXT, accounting->event_file);
+    fput_u16(context_timestamp, accounting->event_file);
+
+    accounting->current_frame_context = context_timestamp;
+  }
+
+  if (record == NULL) {
+    record = malloc(sizeof(CDF_Record));
+    record->id = cdf[nsymbs + 1];
+    //memcpy(record->cdf, cdf, sizeof(aom_cdf_prob) * CDF_SIZE(nsymbs));
+    HASH_ADD_INT(accounting->cdf_map, id, record);
+
+    /* Write cdf to file. INIT_CDF */
+    //fprintf(accounting->event_file, "%X", INIT_CDF);
+    //fprintf(accounting->event_file, "%X\n%s\n%X ", record->id, str, nsymbs);
+    fputc(INIT_CDF, accounting->event_file);
+    fput_u16(record->id, accounting->event_file);
+    fputc(nsymbs, accounting->event_file);
+    //fputc(strlen(str), accounting->event_file); // TODO: Add names for duplicates???
+    //fputs(str, accounting->event_file);
+    fput_str(str, accounting->event_file);
+    fput_str(src_name, accounting->event_file);
+    fput_u16(line, accounting->event_file); // This should fit...
+    for (int i = 0; i < nsymbs; i++) {
+      //fprintf(accounting->event_file, "%X,", cdf[i]);
+      fput_u16(cdf[i], accounting->event_file);
+    }
+    //fprintf(accounting->event_file, "\n");
+  }
+
+  /* Write symbol to file. w/ or w/o updates */
+  /* Format:
+   * event_type: 1 byte (hex)
+   * symbol: 1 byte (hex)
+   * record id: hex number
+   * terminator: new line
+   */
+  fputc((update ? SYMBOL_UPDATE : SYMBOL_NO_UPDATE), accounting->event_file);
+  fputc(symb, accounting->event_file);
+  fput_u16(record->id, accounting->event_file);
+//  fprintf(
+//      accounting->event_file,
+//      "%X%X%X\n",
+//      (update ? SYMBOL_UPDATE : SYMBOL_NO_UPDATE),
+//      symb,
+//      record->id);
+}
+
+void aom_accounting_log_context_move(Accounting *accounting,
+                                     int parent_timestamp,
+                                     int child_timestamp) {
+  //fprintf(accounting->event_file, "%X%X %X\n", MOVE_CONTEXT, parent_timestamp, child_timestamp);
+  fputc(MOVE_CONTEXT, accounting->event_file);
+  fput_u16(parent_timestamp, accounting->event_file);
+  fput_u16(child_timestamp, accounting->event_file);
 }

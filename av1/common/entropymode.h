@@ -66,6 +66,9 @@ typedef struct {
 } SCAN_ORDER;
 
 typedef struct frame_contexts {
+  int timestamp;
+
+
   aom_cdf_prob txb_skip_cdf[TX_SIZES][TXB_SKIP_CONTEXTS][CDF_SIZE(2)];
   aom_cdf_prob eob_extra_cdf[TX_SIZES][PLANE_TYPES][EOB_COEF_CONTEXTS]
                             [CDF_SIZE(2)];
